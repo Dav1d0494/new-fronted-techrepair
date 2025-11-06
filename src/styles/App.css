@@ -1,0 +1,681 @@
+/* src/styles/App.css - Tema estilo RMM Dashboard (Blanco + Morado) */
+
+:root{
+  --purple-main: #6c47ff; /* Morado Vibrante (usado para acentos y elementos principales) */
+  --purple-soft: #f4f0ff; /* Lavanda Muy Suave (fondos de elementos activos/hover) */
+  --purple-darker: #5d34e6; /* Morado un poco más oscuro (para hover o elementos de texto importantes) */
+  
+  --red-alert: #ef4444; /* Rojo para alertas críticas */
+  --red-alert-bg: #fee2e2; /* Fondo rojo suave para alertas */
+  --yellow-warning: #f59e0b; /* Amarillo ámbar para advertencias */
+  --yellow-warning-bg: #fef3c7; 
+  --green-ok: #10b981; /* Verde esmeralda para OK */
+  --green-ok-bg: #d1fae5;
+  
+  /* Colores de estado RMM */
+  --status-completed: var(--green-ok); /* EN LÍNEA */
+  --status-inprogress: var(--purple-main); /* PARCHEANDO */
+  --status-critical: var(--red-alert); /* ALERTA CRÍTICA */
+  --status-bg-completed: var(--green-ok-bg);
+  --status-bg-inprogress: var(--purple-soft);
+  --status-bg-critical: var(--red-alert-bg);
+
+  --text-dark: #1f2937; /* Gris Oscuro para texto principal */
+  --text-muted: #6b7280; /* Gris opaco para texto secundario */
+  
+  --bg-primary: #ffffff; /* Blanco Puro para fondos principales de tarjetas y secciones */
+  --bg-secondary: #f9fafb; /* Gris Muy Claro para el fondo general del cuerpo */
+  --border-light: #e5e7eb; /* Borde gris claro */
+  --shadow-subtle: 0 4px 15px rgba(22, 24, 35, 0.05); /* Sombra suave para tarjetas */
+}
+
+/* === BASE & LAYOUT === */
+body { 
+  background: var(--bg-secondary); 
+  color: var(--text-dark); 
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; 
+  margin: 0;
+  min-height: 100vh;
+  display: flex; 
+  flex-direction: column;
+}
+
+.app-container {
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1400px; 
+    margin: 0 auto; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.05); 
+    background: var(--bg-secondary); 
+}
+
+/* --- LAYOUT PRINCIPAL DE CONTENIDO --- */
+.main-content-wrapper {
+    flex: 1;
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+    background: var(--bg-primary); 
+    margin: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-subtle);
+}
+
+.left-panel {
+    flex: 3; 
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-light);
+    padding-right: 20px;
+}
+
+/* === BARRA SUPERIOR DE CONEXIÓN REMOTA === */
+.remote-address-bar {
+    background: var(--bg-primary); 
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+
+    .app-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--purple-main);
+    }
+    .app-logo .icon {
+        color: var(--purple-main);
+        font-size: 20px;
+    }
+
+    input[type="text"] {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid var(--border-light);
+        border-radius: 6px;
+        font-size: 0.95rem;
+        outline: none;
+        max-width: 300px; /* Limitar ancho del input */
+        &:focus {
+            border-color: var(--purple-main);
+            box-shadow: 0 0 0 2px rgba(108, 71, 255, 0.2);
+        }
+    }
+    
+    /* Botones de herramientas RMM */
+    .session-tools {
+        display: flex;
+        gap: 5px;
+        margin-left: 10px;
+        .tool-button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            padding: 8px;
+            border-radius: 6px;
+            transition: color 0.2s, background-color 0.2s;
+            &:hover {
+                color: var(--purple-main);
+                background-color: var(--purple-soft);
+            }
+        }
+    }
+
+    /* Botón de Conectar Remoto / Signout / Info de usuario */
+    button {
+        padding: 8px 18px;
+        background: var(--purple-main);
+        color: var(--bg-primary);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: background-color 0.2s ease;
+        display: flex;
+        align-items: center;
+        &:hover {
+            background: var(--purple-darker);
+        }
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-left: 20px;
+        .user-id-text {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            .user-icon {
+                color: var(--purple-main);
+                margin-right: 5px;
+                font-size: 1.2rem;
+            }
+        }
+        .signout-button {
+            padding: 6px 12px;
+            background: none;
+            color: var(--text-dark);
+            border: 1px solid var(--border-light);
+            &:hover {
+                background: var(--purple-soft);
+                color: var(--purple-main);
+                border-color: var(--purple-main);
+            }
+        }
+    }
+}
+
+/* === BANNER DE ALERTA SUPERIOR === */
+.top-alert-banner {
+    background: var(--purple-main); 
+    color: var(--bg-primary);
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.alert-critical {
+    background: var(--red-alert);
+}
+
+/* === NAVEGACIÓN POR PESTAÑAS === */
+.tab-navigation {
+    display: flex;
+    border-bottom: 1px solid var(--border-light);
+    margin: 0; 
+    background: var(--bg-primary);
+
+    .tab-item {
+        padding: 12px 20px;
+        color: var(--text-muted);
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease;
+        &:hover {
+            color: var(--purple-main);
+        }
+        &.active {
+            color: var(--purple-main);
+            border-bottom-color: var(--purple-main);
+            font-weight: 600;
+        }
+    }
+    /* Iconos de vista (grilla/lista) */
+    .view-icons {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-right: 20px;
+        color: var(--text-muted);
+        .icon {
+            cursor: pointer;
+            font-size: 1.1rem;
+            &:hover {
+                color: var(--purple-main);
+            }
+        }
+        .icon.active {
+             color: var(--purple-main);
+        }
+    }
+}
+
+/* === CUADRÍCULA DE TARJETAS (Dashboard) === */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+    gap: 20px;
+    padding: 20px 0 0 0; 
+    background: var(--bg-primary);
+    flex: 1; 
+}
+
+.info-card {
+    background: var(--bg-primary);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow-subtle);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 150px; 
+    position: relative; 
+    border-left: 5px solid transparent; 
+    transition: all 0.2s ease;
+
+    h4 {
+        font-size: 1.1rem;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+    }
+    p {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+    }
+    .action-button {
+        padding: 8px 15px;
+        border: 1px solid var(--purple-main);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--purple-main);
+        font-weight: 500;
+        cursor: pointer;
+        margin-top: 15px;
+        align-self: flex-start; 
+        transition: all 0.2s ease;
+        &:hover {
+            background: var(--purple-main);
+            color: var(--bg-primary);
+        }
+    }
+    .close-card-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1rem;
+        cursor: pointer;
+        &:hover {
+            color: var(--red-alert);
+        }
+    }
+    .card-icon {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+}
+
+/* Clases de estado RMM */
+.equipment-card.status-completed {
+    border-left-color: var(--status-completed);
+    background: var(--status-bg-completed);
+}
+
+.equipment-card.status-inprogress {
+    border-left-color: var(--status-inprogress);
+    background: var(--status-bg-inprogress);
+}
+
+.equipment-card.status-critical {
+    border-left-color: var(--status-critical);
+    background: var(--status-bg-critical);
+    box-shadow: 0 0 20px rgba(var(--red-alert), 0.2);
+}
+
+/* === ESTILOS ESPECÍFICOS DE LAS TARJETAS DE FUNCIONALIDAD === */
+.card-remote-control {
+    background: linear-gradient(135deg, var(--purple-main) 0%, #a78bfa 100%);
+    color: var(--bg-primary);
+    h4, p { color: var(--bg-primary); }
+    .action-button {
+        background: var(--bg-primary);
+        color: var(--purple-main);
+        border-color: var(--bg-primary);
+        &:hover {
+            background: #f0f0f0;
+        }
+    }
+}
+
+.card-patching {
+    border-left: 5px solid var(--status-inprogress);
+    background: var(--purple-soft);
+}
+
+.card-inventory {
+    border-left: 5px solid var(--yellow-warning);
+    background: var(--yellow-warning-bg);
+}
+
+.card-security {
+    border-left: 5px solid var(--green-ok);
+    background: var(--green-ok-bg);
+}
+
+
+/* === ESTILOS DEL PANEL DE MONITOREO Y ALERTAS (Nuevo) === */
+.monitoring-panel {
+    flex: 1; /* Ocupa 1/4 del espacio, pero es flexible */
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary); 
+    border-radius: 12px;
+    overflow: hidden;
+    gap: 20px;
+}
+
+.monitor-header {
+    background: var(--purple-darker);
+    color: var(--bg-primary);
+    padding: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 12px 12px 0 0;
+}
+
+.monitor-icon {
+    font-size: 1.2rem;
+}
+
+.global-status-card, .tasks-card {
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-subtle);
+    h5 {
+        font-size: 1rem;
+        color: var(--text-dark);
+        margin-bottom: 15px;
+    }
+}
+
+.status-summary {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+    .stat {
+        padding: 10px;
+        border-radius: 8px;
+        strong {
+            font-size: 1.8rem;
+            color: var(--green-ok);
+        }
+        p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin: 0;
+        }
+    }
+    .stat-critical-alert strong {
+        color: var(--red-alert);
+    }
+}
+
+
+.alerts-list {
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-subtle);
+    
+    h5 {
+        font-size: 1rem;
+        color: var(--text-dark);
+        margin-bottom: 15px;
+    }
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+    gap: 10px;
+    font-size: 0.9rem;
+    &:last-child { border-bottom: none; }
+
+    svg { 
+        color: var(--text-muted); 
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    
+    .alert-content {
+        flex-grow: 1;
+        strong { display: block; }
+        p { margin: 0; font-size: 0.85rem; color: var(--text-dark); }
+    }
+    
+    .alert-time {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+}
+
+.alert-critica svg { color: var(--red-alert); }
+.alert-advertencia svg { color: var(--yellow-warning); }
+.alert-informativa svg { color: var(--purple-main); }
+
+
+.tasks-card {
+    .task-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--border-light);
+        font-size: 0.9rem;
+        color: var(--text-dark);
+        svg { color: var(--purple-main); }
+        &:last-child { border-bottom: none; }
+    }
+    .task-item svg:nth-child(2) { color: var(--green-ok); } /* Icono de check */
+}
+
+.view-all-button {
+    background: none;
+    border: none;
+    color: var(--purple-main);
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+
+/* === ESTILOS DE LOGIN/AUTH (Se mantienen con el nuevo nombre) === */
+.loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-size: 1.5rem;
+    color: var(--purple-main);
+    background: var(--bg-secondary);
+}
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-secondary);
+}
+
+.auth-card {
+    background: var(--bg-primary);
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+}
+
+.auth-logo-icon {
+    font-size: 3rem;
+    color: var(--purple-main);
+    margin-bottom: 10px;
+}
+
+.auth-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: var(--text-dark);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    z-index: 10;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 12px 12px 40px; 
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    &:focus {
+        border-color: var(--purple-main);
+    }
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    padding: 0;
+    z-index: 10;
+}
+
+.auth-button {
+    padding: 12px 20px;
+    background: var(--purple-main);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.05rem;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    &:hover {
+        background: var(--purple-darker);
+    }
+}
+
+.auth-toggle-link {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: var(--purple-main);
+    cursor: pointer;
+    text-decoration: underline;
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+.auth-error {
+    background-color: var(--red-alert-bg);
+    color: var(--red-alert);
+    border: 1px solid var(--red-alert);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+/* === UTILIDADES === */
+.text-center { text-align: center; }
+.mt-3 { margin-top: 0.75rem; } 
+.mb-6 { margin-bottom: 1.5rem; } 
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-3 { gap: 0.75rem; }
+.font-medium { font-weight: 500; }
+.text-xl { font-size: 1.25rem; } 
+.font-bold { font-weight: 700; }
+.text-xs { font-size: 0.75rem; } 
+.mr-2 { margin-right: 0.5rem; }
+.ml-auto { margin-left: auto; }
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .main-content-wrapper {
+        flex-direction: column;
+        padding: 10px;
+        margin: 10px;
+        gap: 10px;
+    }
+
+    .left-panel {
+        padding-right: 0;
+        border-right: none;
+    }
+    
+    .monitoring-panel {
+        min-height: 400px;
+        /* Estilos ajustados para el panel de monitoreo en móvil */
+        .status-summary {
+            flex-wrap: wrap;
+            .stat {
+                flex: 1 1 30%;
+                margin: 5px 0;
+            }
+        }
+    }
+
+    .remote-address-bar {
+        flex-wrap: wrap;
+        .user-info {
+            margin-left: 0;
+            width: 100%;
+            justify-content: space-between;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-light);
+            margin-top: 10px;
+        }
+        input[type="text"] {
+            order: 3; 
+            flex-grow: 1;
+        }
+        button:nth-of-type(1) { /* Conectar Remoto button */
+            order: 4;
+            min-width: 100px;
+        }
+        .session-tools {
+            order: 5;
+            flex-grow: 1;
+            justify-content: space-around;
+        }
+    }
+}
