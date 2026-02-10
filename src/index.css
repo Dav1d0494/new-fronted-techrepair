@@ -1,17 +1,95 @@
-/* Asegúrate de tener Tailwind configurado. Abajo hay utilidades básicas y scrollbars */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Personalización de scrollbars */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-200;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Scrollbar personalizado */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-::-webkit-scrollbar-thumb {
-  background-color: #4b5563;
-  border-radius: 10px;
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-slate-800;
 }
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-slate-600 rounded-full;
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #6b7280;
+  @apply bg-gray-600 dark:bg-slate-500;
+}
+
+/* Animaciones globales */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Transiciones suaves para elementos interactivos */
+input,
+textarea,
+select {
+  @apply transition-all duration-200;
+}
+
+button {
+  @apply transition-all duration-200;
+}
+
+/* Glass morphism effect */
+.glass {
+  @apply bg-white/10 backdrop-blur-md border border-white/20 dark:border-slate-700/30;
+}
+
+.glass-dark {
+  @apply bg-slate-900/40 backdrop-blur-md border border-slate-700/30;
 }

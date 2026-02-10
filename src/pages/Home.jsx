@@ -1,58 +1,73 @@
-import React, { useContext } from "react";
-import { AppContext } from "../context/AppContext";
-import Icon from "../components/ui/Icon";
+import React from "react";
+import { useAuth } from "../hooks/useAuth";
 
-/**
- * Página: Home
- * ----------------------------
- * Aquí muestro la pantalla principal del sistema TechRepair.
- * Presento un resumen del estado actual y accesos rápidos.
- */
+// Importamos usando las subcarpetas correctas de tu estructura
+import { Header } from "../components/layouts/Header";
+import { Sidebar } from "../components/layouts/Sidebar";
+import { StatsCard } from "../components/dashboard/StatsCard";
+import { ActivityChart } from "../components/dashboard/ActivityChart";
+import { TicketList } from "../components/tickets/TicketList";
+import { ChatWindow } from "../components/chat/ChatWindow";
 
-const Home = () => {
-  const { connected, history } = useContext(AppContext);
+export default function Home() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center font-bold text-purple-600">
+        Cargando...
+      </div>
+    );
+  }
+
+  const role = user?.role?.toLowerCase().trim() || "cliente";
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
-        <Icon name="FaHome" /> Bienvenido a TechRepair
-      </h1>
+    <div className="flex h-screen bg-[#F8FAFC]">
+      <Sidebar role={role} />
 
-      <p className="text-gray-600 mb-6">
-        En este panel puedo visualizar el estado general del sistema de
-        mantenimiento remoto y acceder a las funciones principales.
-      </p>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header user={user} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white shadow rounded-lg p-5">
-          <h3 className="text-lg font-semibold mb-2">Estado de conexión</h3>
-          <p
-            className={`font-bold ${
-              connected ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {connected ? "Conectado" : "Desconectado"}
-          </p>
-        </div>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6">
+          {/* VISTA ADMIN */}
+          {role === "admin" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatsCard title="Ventas Totales" value="$12,400" />
+                <StatsCard title="Técnicos" value="3" />
+                <StatsCard title="Tickets Hoy" value="12" />
+              </div>
+              <ActivityChart />
+            </div>
+          )}
 
-        <div className="bg-white shadow rounded-lg p-5">
-          <h3 className="text-lg font-semibold mb-2">Historial reciente</h3>
-          <p className="text-gray-700">
-            {history.length === 0
-              ? "Sin registros todavía."
-              : `Última acción: ${history[history.length - 1].status} en ${
-                  history[history.length - 1].device
-                }`}
-          </p>
-        </div>
+          {/* VISTA TÉCNICO */}
+          {role === "tecnico" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <TicketList title="Mis Reparaciones" />
+              </div>
+              <ChatWindow title="Chat Soporte" />
+            </div>
+          )}
 
-        <div className="bg-white shadow rounded-lg p-5">
-          <h3 className="text-lg font-semibold mb-2">Versión del sistema</h3>
-          <p className="text-gray-700">TechRepair v1.0.0</p>
-        </div>
+          {/* VISTA CLIENTE */}
+          {role === "cliente" && (
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div className="bg-purple-600 text-white p-8 rounded-3xl">
+                <h1 className="text-3xl font-bold">
+                  Bienvenido, {user?.name}
+                </h1>
+                <p className="opacity-90">
+                  Tu conexión está cifrada. Comparte tu ID solo con personal autorizado.
+                </p>
+              </div>
+              <ChatWindow />
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
-};
-
-export default Home;
+}
