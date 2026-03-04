@@ -10,8 +10,8 @@ import ResetPassword from './pages/ResetPassword';
 // import Settings from './pages/Settings'; // Descomenta cuando el archivo exista
 
 // CORRECCIÓN DE RUTAS: Usamos ./layout/ porque así está en tu carpeta
-import AppLayout from './layout/AppLayout';
-import ProtectedRoute from './layout/ProtectedRoute';
+import AppLayout from './components/layouts/AppLayouts';
+import ProtectedRoute from './components/layouts/ProtectedRoute';
 import { ROLES } from './config/roles';
 
 function App() {

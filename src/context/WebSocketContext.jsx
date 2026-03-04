@@ -13,7 +13,30 @@ export function WebSocketProvider({ children }) {
 
   useEffect(() => {
     // Inicializar conexión WebSocket
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws'
+    const resolveWsUrl = () => {
+      const envUrl = import.meta.env.VITE_WS_URL
+      if (envUrl) {
+        try {
+          const parsed = new URL(envUrl)
+          if (parsed.hostname === 'localhost' && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+            parsed.hostname = window.location.hostname
+            return parsed.toString()
+          }
+          return envUrl
+        } catch (_error) {
+          return envUrl
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        return `${protocol}//${window.location.hostname}:8080/ws`
+      }
+
+      return 'ws://localhost:8080/ws'
+    }
+
+    const wsUrl = resolveWsUrl()
     const token = localStorage.getItem('token')
 
     if (!token) return

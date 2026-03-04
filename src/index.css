@@ -93,3 +93,33 @@ button {
 .glass-dark {
   @apply bg-slate-900/40 backdrop-blur-md border border-slate-700/30;
 }
+
+/* Layout consistente para los tres roles */
+.role-shell {
+  --workspace-max-width: 1560px;
+}
+
+.role-main {
+  width: 100%;
+  max-width: var(--workspace-max-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.role-shell ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.role-shell ::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.role-shell ::-webkit-scrollbar-thumb {
+  background: rgba(127, 0, 255, 0.45);
+  border-radius: 9999px;
+}
+
+.role-shell ::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 0, 255, 0.7);
+}

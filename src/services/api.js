@@ -3,8 +3,30 @@ import axios from 'axios'
 /**
  * Instancia de Axios configurada para la API
  */
+const resolveApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl) {
+    try {
+      const parsed = new URL(envUrl)
+      if (parsed.hostname === 'localhost' && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        parsed.hostname = window.location.hostname
+        return parsed.toString()
+      }
+      return envUrl
+    } catch (_error) {
+      return envUrl
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:8080/api`
+  }
+
+  return 'http://localhost:8080/api'
+}
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
+  baseURL: resolveApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
