@@ -48,6 +48,7 @@ import {
   Zap,
   KeyRound,
   Trash2,
+  Newspaper,
 } from "lucide-react";
 import { auth } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
@@ -55,7 +56,9 @@ import { getUserRole } from "../config/roles";
 import remoteSessionService from "../services/remoteSessionService";
 import { TicketList } from "../components/tickets/TicketList";
 import { ChatWindow } from "../components/chat/ChatWindow";
+import TechnicalNewsPanel from "../components/news/TechnicalNewsPanel";
 import logo from "../assets/logo.png";
+import { canAccessTechnicalNews, resolveTechnicalNewsUserMeta } from "../utils/technicalNewsAccess";
 
 const ACCENT = "#7F00FF";
 const ACCENT_HOVER = "#5E00CC";
@@ -158,6 +161,8 @@ function AdminWorkspace({ user }) {
     : { bg: "#FFFFFF", panel: "#F7F7F7", card: "#FFFFFF", border: "#D1D1D1", text: "#333333", sub: "#6B6B6B" };
 
   const card = "card-surface rounded-lg shadow-sm border";
+  const canManageTechnicalNews = canAccessTechnicalNews(user, "admin");
+  const adminTechnicalNewsMeta = resolveTechnicalNewsUserMeta(user);
 
   const nav = [
     { id: "dashboard", label: "Inicio / Dashboard", icon: Activity },
@@ -165,6 +170,7 @@ function AdminWorkspace({ user }) {
     { id: "tickets", label: "Solicitudes / Tickets", icon: FileWarning },
     { id: "devices", label: "Dispositivos Corporativos", icon: Monitor },
     { id: "reports", label: "Reportes", icon: PieChart },
+    ...(canManageTechnicalNews ? [{ id: "news", label: "Noticias Tecnicas", icon: Newspaper }] : []),
     { id: "settings", label: "Configuracion", icon: Wrench },
   ];
 
@@ -1206,6 +1212,18 @@ function AdminWorkspace({ user }) {
     </section>
   );
 
+  const newsSection = (
+    <TechnicalNewsPanel
+      active={section === "news"}
+      theme={theme}
+      accentColor={ACCENT}
+      accentHoverColor={ACCENT_HOVER}
+      cardClassName={card}
+      roleLabel="Administrador"
+      accessId={adminTechnicalNewsMeta.displayId}
+    />
+  );
+
   return (
     <div className={cx("min-h-screen admin-shell role-shell", isDark ? "admin-dark" : "admin-light")} style={{ fontFamily: "Inter, Roboto, sans-serif", backgroundColor: theme.bg, color: theme.text }}>
       <style>{`
@@ -1244,9 +1262,12 @@ function AdminWorkspace({ user }) {
 
         <div className="flex-1 min-w-0">
           <header className="sticky top-0 z-20 border-b px-6 py-4" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-              <div><h1 className="text-[24px] font-semibold" style={{ color: theme.text }}>Panel Administrador</h1><p className="text-sm" style={{ color: theme.sub }}>{user?.email} - Rol: Administrador</p></div>
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-3 items-start justify-between">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-[24px] font-semibold break-words" style={{ color: theme.text }}>Panel Administrador</h1>
+                <p className="text-sm break-all sm:break-words" style={{ color: theme.sub }}>{user?.email} - Rol: Administrador</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 text-xs"><CheckCircle2 size={14} /> Conectado</span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs" style={{ borderColor: theme.border, backgroundColor: theme.panel, color: theme.text }}><Lock size={14} /> Seguro</span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs" style={{ borderColor: theme.border, backgroundColor: theme.panel, color: theme.text }}><Globe size={14} /> Dispositivos activos</span>
@@ -1260,6 +1281,7 @@ function AdminWorkspace({ user }) {
             {section === "tickets" && tickets}
             {section === "devices" && devicesSection}
             {section === "reports" && reports}
+            {canManageTechnicalNews && <section className={section === "news" ? "block" : "hidden"}>{newsSection}</section>}
             {section === "settings" && settings}
           </main>
         </div>
@@ -1684,6 +1706,8 @@ function TechnicianWorkspace({ user }) {
     "17:47 - Diagnostico inicial de latencia.",
     "17:48 - Esperando codigo de cliente.",
   ]);
+  const canUseTechnicalNews = canAccessTechnicalNews(user, "tecnico");
+  const technicianTechnicalNewsMeta = resolveTechnicalNewsUserMeta(user);
 
   const nav = [
     { id: "dashboard", label: "Inicio tecnico", icon: Activity },
@@ -1692,6 +1716,7 @@ function TechnicianWorkspace({ user }) {
     { id: "devices", label: "Dispositivos asignados", icon: Monitor },
     { id: "knowledge", label: "Base de conocimiento", icon: BookOpen },
     { id: "shift", label: "Turno y bitacora", icon: Clock3 },
+    ...(canUseTechnicalNews ? [{ id: "news", label: "Noticias Tecnicas", icon: Newspaper }] : []),
     { id: "settings", label: "Configuracion", icon: Wrench },
   ];
 
@@ -2480,6 +2505,18 @@ function TechnicianWorkspace({ user }) {
     </section>
   );
 
+  const newsSection = (
+    <TechnicalNewsPanel
+      active={section === "news"}
+      theme={techTheme}
+      accentColor={ACCENT}
+      accentHoverColor={ACCENT_HOVER}
+      cardClassName={card}
+      roleLabel="Tecnico"
+      accessId={technicianTechnicalNewsMeta.displayId}
+    />
+  );
+
   return (
     <div className={cx("min-h-screen tech-shell role-shell", isTechDark ? "tech-dark" : "tech-light")} style={{ fontFamily: "Inter, Roboto, sans-serif", backgroundColor: techTheme.bg, color: techTheme.text }}>
       <style>{`
@@ -2529,12 +2566,12 @@ function TechnicianWorkspace({ user }) {
 
         <div className="flex-1 min-w-0">
           <header className="sticky top-0 z-20 border-b px-6 py-4" style={{ borderColor: techTheme.border, backgroundColor: techTheme.card }}>
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-              <div>
-                <h1 className="text-[24px] font-semibold text-[#333333]">Panel Tecnico</h1>
-                <p className="text-sm text-[#6B6B6B]">{user?.email} · Rol: Tecnico</p>
+            <div className="flex flex-wrap gap-3 items-start justify-between">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-[24px] font-semibold break-words text-[#333333]">Panel Tecnico</h1>
+                <p className="text-sm break-all sm:break-words text-[#6B6B6B]">{user?.email} · Rol: Tecnico</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-green-200 bg-green-50 text-green-700 text-xs"><CheckCircle2 size={14} /> Disponible</span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#D1D1D1] bg-[#F7F7F7] text-[#333333] text-xs"><TerminalSquare size={14} /> Diagnostico listo</span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#D1D1D1] bg-[#F7F7F7] text-[#333333] text-xs"><Clock3 size={14} /> SLA en objetivo</span>
@@ -2549,6 +2586,7 @@ function TechnicianWorkspace({ user }) {
             {section === "devices" && devicesSection}
             {section === "knowledge" && knowledgeSection}
             {section === "shift" && shiftSection}
+            {canUseTechnicalNews && <section className={section === "news" ? "block" : "hidden"}>{newsSection}</section>}
             {section === "settings" && settingsSection}
           </main>
         </div>
