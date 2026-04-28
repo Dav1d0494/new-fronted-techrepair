@@ -19,10 +19,10 @@ const resolveApiBaseUrl = () => {
   }
 
   if (typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.hostname}:8080/api`
+    return `${window.location.protocol}//${window.location.hostname}:8088/api`  // ✅ CAMBIADO
   }
 
-  return 'http://localhost:8080/api'
+  return 'http://localhost:8088/api'  // ✅ CAMBIADO
 }
 
 const apiClient = axios.create({

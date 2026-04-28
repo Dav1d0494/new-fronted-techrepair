@@ -6,7 +6,7 @@ import Card from '@components/ui/Card'
 /**
  * TicketForm - Formulario para crear/editar tickets
  */
-export function TicketForm({ ticket, onSubmit, loading = false }) {
+export function TicketForm({ ticket, onSubmit, loading = false, onCancel }) {
   const [formData, setFormData] = useState(
     ticket || {
       title: '',
@@ -122,7 +122,7 @@ export function TicketForm({ ticket, onSubmit, loading = false }) {
         </div>
 
         <div className="flex gap-4 justify-end pt-4">
-          <Button type="button" variant="ghost">
+          <Button type="button" variant="ghost" onClick={() => onCancel?.()}>
             Cancelar
           </Button>
           <Button type="submit" variant="primary" loading={loading}>

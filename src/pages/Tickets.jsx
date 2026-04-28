@@ -4,6 +4,10 @@ import { TicketList } from '@components/tickets/TicketList'
 import { TicketFilters } from '@components/tickets/TicketFilters'
 import Button from '@components/ui/Button'
 import { Plus } from 'lucide-react'
+import Modal from '@components/ui/Modal'
+import TicketForm from '@components/tickets/TicketForm'
+import ticketService from '@services/ticketService'
+import { useNotifications } from '@hooks/useNotifications'
 
 /**
  * Página de Tickets
@@ -48,6 +52,10 @@ export function Tickets() {
     priority: 'all',
   })
 
+  const [showNewTicketModal, setShowNewTicketModal] = useState(false)
+  const [creatingTicket, setCreatingTicket] = useState(false)
+  const { success, error } = useNotifications()
+
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
   }
@@ -60,6 +68,38 @@ export function Tickets() {
 
     return matchesSearch && matchesStatus && matchesPriority
   })
+
+  const handleCreateTicket = async (formData) => {
+    try {
+      setCreatingTicket(true)
+      // call API
+      const created = await ticketService.createTicket(formData)
+
+      // normalize fields for UI consistency
+      const newTicket = {
+        id: created.id || Math.floor(Math.random() * 1000000),
+        title: created.title || formData.title,
+        description: created.description || formData.description,
+        customer: created.customer || formData.customer || 'Cliente',
+        status: created.status || 'Abierto',
+        priority: (created.priority || formData.priority || 'media').toString(),
+        assignee: created.assignee || '',
+        createdAt: created.createdAt ? new Date(created.createdAt) : new Date(),
+      }
+
+      // Capitalize priority for existing UI mapping
+      newTicket.priority = newTicket.priority.charAt(0).toUpperCase() + newTicket.priority.slice(1)
+
+      setTickets(prev => [newTicket, ...prev])
+      setShowNewTicketModal(false)
+      success('Ticket creado correctamente')
+    } catch (err) {
+      console.error('Error creando ticket', err)
+      error('No se pudo crear el ticket')
+    } finally {
+      setCreatingTicket(false)
+    }
+  }
 
   return (
     <AppLayout>
@@ -74,7 +114,7 @@ export function Tickets() {
               Gestiona y responde a los tickets de soporte
             </p>
           </div>
-          <Button variant="primary" icon={Plus}>
+          <Button variant="primary" icon={Plus} onClick={() => setShowNewTicketModal(true)}>
             Nuevo Ticket
           </Button>
         </div>
@@ -87,6 +127,19 @@ export function Tickets() {
           tickets={filteredTickets}
           onTicketClick={(id) => console.log('Clicked ticket:', id)}
         />
+
+        <Modal
+          isOpen={showNewTicketModal}
+          onClose={() => setShowNewTicketModal(false)}
+          title="Crear nuevo ticket"
+          size="lg"
+        >
+          <TicketForm
+            onSubmit={handleCreateTicket}
+            loading={creatingTicket}
+            onCancel={() => setShowNewTicketModal(false)}
+          />
+        </Modal>
       </div>
     </AppLayout>
   )
