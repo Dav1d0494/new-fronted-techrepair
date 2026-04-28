@@ -27,6 +27,23 @@ import { ACCENT, ACCENT_HOVER, cx, Pill } from "../components/workspaces/shared"
 import { auth } from "../lib/firebase";
 import logo from "../assets/logo.png";
 
+const LEONARDO_CHAT_KEY = "techrepair_chat_TR-809-541-001";
+
+const readLeonardoChat = () => {
+  try {
+    const raw = localStorage.getItem(LEONARDO_CHAT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+};
+
+const writeLeonardoChat = (messages) => {
+  localStorage.setItem(LEONARDO_CHAT_KEY, JSON.stringify(messages));
+};
+
 function Dashboard({ user }) {
   const [clientSection, setClientSection] = useState("home");
   const [workspaceTab, setWorkspaceTab] = useState("workspace");
@@ -125,16 +142,31 @@ function Dashboard({ user }) {
     { id: "account", label: "Cuenta", icon: Users },
   ];
 
-  const [supportMessages, setSupportMessages] = useState([
-    { from: "system", text: "Hola, soy tu asistente. El tecnico se unira en breve.", time: "12:45" },
-    { from: "client", text: "Mi equipo esta muy lento desde esta manana.", time: "12:47" },
-    { from: "system", text: "Gracias. Estamos revisando tu caso, no cierres esta ventana.", time: "12:48" },
-  ]);
+  const [supportMessages, setSupportMessages] = useState(() => {
+    const existing = readLeonardoChat();
+    if (existing.length) return existing;
+    const seed = [{ from: "tech", text: "Hola Leonardo, revisamos tu ticket y podemos iniciar el diagnostico remoto cuando confirmes por chat.", time: new Date().toLocaleTimeString() }];
+    writeLeonardoChat(seed);
+    return seed;
+  });
+
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (event.key !== LEONARDO_CHAT_KEY) return;
+      setSupportMessages(readLeonardoChat());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const sendClientMessage = () => {
     const text = chatInput.trim();
     if (!text) return;
-    setSupportMessages((prev) => [{ from: "client", text, time: new Date().toLocaleTimeString() }, ...prev]);
+    setSupportMessages((prev) => {
+      const updated = [{ from: "client", text, time: new Date().toLocaleTimeString() }, ...prev];
+      writeLeonardoChat(updated);
+      return updated;
+    });
     setChatInput("");
   };
 
@@ -229,7 +261,11 @@ function Dashboard({ user }) {
   const sendRemoteMessageFromClient = () => {
     const text = (remoteChatInput || "").toString().trim();
     if (!text) return;
-    setSupportMessages((prev) => [{ from: "client", text, time: new Date().toLocaleTimeString() }, ...prev]);
+    setSupportMessages((prev) => {
+      const updated = [{ from: "client", text, time: new Date().toLocaleTimeString() }, ...prev];
+      writeLeonardoChat(updated);
+      return updated;
+    });
     setRemoteChatInput("");
   };
 

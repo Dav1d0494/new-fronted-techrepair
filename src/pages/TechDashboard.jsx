@@ -38,6 +38,24 @@ import TechnicalNewsPanel from "../components/news/TechnicalNewsPanel";
 import logo from "../assets/logo.png";
 import { canAccessTechnicalNews, resolveTechnicalNewsUserMeta } from "../utils/technicalNewsAccess";
 
+const LEONARDO_CHAT_KEY = "techrepair_chat_TR-809-541-001";
+const TECH_NAIN_CHAT_KEY = "techrepair_chat_TEC-808-544-541";
+
+const readSharedChat = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+};
+
+const writeSharedChat = (key, messages) => {
+  localStorage.setItem(key, JSON.stringify(messages));
+};
+
 function TechDashboard({ user }) {
   const [section, setSection] = useState("dashboard");
   const [techSettingsTab, setTechSettingsTab] = useState("interface");
@@ -85,6 +103,41 @@ function TechDashboard({ user }) {
     "17:47 - Diagnostico inicial de latencia.",
     "17:48 - Esperando codigo de cliente.",
   ]);
+  const [myTicketsList, setMyTicketsList] = useState([
+    { id: "TK-9321", user: "Paula Gomez", priority: "Alta", status: "Pendiente", eta: "12 min", device: "HQ-PC-001" },
+    { id: "TK-9312", user: "Luis Ortega", priority: "Media", status: "En progreso", eta: "25 min", device: "FIN-LAP-008" },
+    { id: "TK-9298", user: "Marta Leon", priority: "Critica", status: "Pendiente", eta: "5 min", device: "OPS-MOB-021" },
+    { id: "TK-9401", user: "Leonardo Martinez", priority: "Media", status: "Pendiente", eta: "18 min", device: "USR-809541001" },
+  ]);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketForm, setTicketForm] = useState({ status: "", diagnostic: "" });
+  const [notification, setNotification] = useState({ show: false, message: "", type: "success" });
+  const [remoteSessionsList, setRemoteSessionsList] = useState([
+    { id: "RS-1402", client: "CL-809115", category: "Correctivo", priority: "Alta", status: "Activa", date: "2026-02-16 17:45", duration: "22 min" },
+    { id: "RS-1401", client: "CL-772201", category: "Preventivo", priority: "Media", status: "Finalizada", date: "2026-02-16 16:30", duration: "38 min" },
+    { id: "RS-1398", client: "CL-550980", category: "Instalacion", priority: "Baja", status: "Finalizada", date: "2026-02-16 14:10", duration: "19 min" },
+    { id: "RS-1395", client: "CL-991204", category: "Correctivo", priority: "Critica", status: "Pendiente", date: "2026-02-16 12:55", duration: "Sin iniciar" },
+    { id: "RS-1393", client: "CL-664030", category: "Auditoria", priority: "Media", status: "Finalizada", date: "2026-02-15 18:20", duration: "41 min" },
+    { id: "RS-1390", client: "CL-440312", category: "Preventivo", priority: "Alta", status: "Activa", date: "2026-02-15 11:05", duration: "15 min" },
+  ]);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedHistorySession, setSelectedHistorySession] = useState(null);
+  const [showEscalationModal, setShowEscalationModal] = useState(false);
+  const [escalationTarget, setEscalationTarget] = useState("tecnico");
+  const [knowledgeBase, setKnowledgeBase] = useState([
+    { id: 1, title: "Guía de diagnóstico remoto para red inestable", category: "Redes", content: "1. Verificar conectividad con ping...\n2. Comprobar firewall y antivirus...\n3. Reiniciar adaptador de red...\n4. Verificar DNS y proxy..." },
+    { id: 2, title: "Checklist de cierre de ticket crítico", category: "Procedimientos", content: "✓ Validar que la solución funciona\n✓ Confirmar con el usuario final\n✓ Documentar en bitácora\n✓ Verificar SLA cumplido\n✓ Cerrar ticket en sistema" },
+    { id: 3, title: "Procedimiento de reinstalación de agente", category: "Software", content: "1. Desinstalar versión anterior desde Panel de Control\n2. Descargar último instalador desde portal TechRepair\n3. Ejecutar como administrador\n4. Configurar permisos y firewall\n5. Verificar conexión con servidor" },
+    { id: 4, title: "Matriz de escalamiento L1 -> L2", category: "Gestión", content: "Casos que requieren escalamiento:\n- SLA comprometido (>15 min)\n- Error desconocido sin documentación\n- Permisos insuficientes\n- Fallo de hardware\n- Requiere acceso a base de datos" },
+  ]);
+  const [searchKnowledge, setSearchKnowledge] = useState("");
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [techChatKey, setTechChatKey] = useState(TECH_NAIN_CHAT_KEY);
   const canUseTechnicalNews = canAccessTechnicalNews(user, "tecnico");
   const technicianTechnicalNewsMeta = resolveTechnicalNewsUserMeta(user);
 
@@ -135,32 +188,33 @@ function TechDashboard({ user }) {
     ["privacy", "Privacidad de sesion"],
   ];
 
-  const tickets = [
-    { id: "TK-9321", user: "Paula Gomez", priority: "Alta", status: "Pendiente", eta: "12 min" },
-    { id: "TK-9312", user: "Luis Ortega", priority: "Media", status: "En progreso", eta: "25 min" },
-    { id: "TK-9298", user: "Marta Leon", priority: "Critica", status: "Pendiente", eta: "5 min" },
-  ];
-
   const devices = [
     { name: "HQ-PC-001", os: "Windows 11", state: "Online", ping: "18ms", last: "Ahora" },
     { name: "OPS-MOB-021", os: "Android 14", state: "Inestable", ping: "98ms", last: "2 min" },
     { name: "DIR-TAB-004", os: "iPadOS", state: "Online", ping: "26ms", last: "Ahora" },
   ];
-  const remoteSessions = useMemo(
-    () => [
-      { id: "RS-1402", client: "CL-809115", category: "Correctivo", priority: "Alta", status: "Activa", date: "2026-02-16 17:45", duration: "22 min" },
-      { id: "RS-1401", client: "CL-772201", category: "Preventivo", priority: "Media", status: "Finalizada", date: "2026-02-16 16:30", duration: "38 min" },
-      { id: "RS-1398", client: "CL-550980", category: "Instalacion", priority: "Baja", status: "Finalizada", date: "2026-02-16 14:10", duration: "19 min" },
-      { id: "RS-1395", client: "CL-991204", category: "Correctivo", priority: "Critica", status: "Pendiente", date: "2026-02-16 12:55", duration: "Sin iniciar" },
-      { id: "RS-1393", client: "CL-664030", category: "Auditoria", priority: "Media", status: "Finalizada", date: "2026-02-15 18:20", duration: "41 min" },
-      { id: "RS-1390", client: "CL-440312", category: "Preventivo", priority: "Alta", status: "Activa", date: "2026-02-15 11:05", duration: "15 min" },
-    ],
-    []
-  );
   const remoteSessionId = useMemo(() => {
     const normalized = (activeRemoteClient || "general").trim().replace(/\s+/g, "-");
     return `tech-${normalized}`;
   }, [activeRemoteClient]);
+
+  useEffect(() => {
+    const existing = readSharedChat(techChatKey);
+    if (existing.length) {
+      setRemoteMessages(existing);
+    } else {
+      const seed = [{ from: "system", text: "Canal tecnico seguro iniciado.", time: new Date().toLocaleTimeString() }];
+      writeSharedChat(techChatKey, seed);
+      setRemoteMessages(seed);
+    }
+
+    const onStorage = (event) => {
+      if (event.key !== techChatKey) return;
+      setRemoteMessages(readSharedChat(techChatKey));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [techChatKey]);
 
   const startSession = () => {
     if (!clientCode.trim()) return;
@@ -271,19 +325,31 @@ function TechDashboard({ user }) {
     const text = remoteChatInput.trim();
     if (!text) return;
 
+    const localMessage = {
+      from: "tech",
+      text,
+      time: new Date().toLocaleTimeString(),
+    };
+    setRemoteMessages((prev) => {
+      const updated = [localMessage, ...prev];
+      writeSharedChat(techChatKey, updated);
+      return updated;
+    });
+
     try {
       const savedMessage = await remoteSessionService.sendMessage(remoteSessionId, {
         senderName: user?.displayName || user?.email || "Tecnico",
         senderRole: "tech",
         text,
       });
-      setRemoteMessages((prev) => [toUiMessage(savedMessage), ...prev]);
+      setRemoteMessages((prev) => {
+        const updated = [toUiMessage(savedMessage), ...prev.slice(1)];
+        writeSharedChat(techChatKey, updated);
+        return updated;
+      });
       setRemoteChatInput("");
     } catch (error) {
-      setRemoteMessages((prev) => [
-        { from: "system", text: "No se pudo enviar el mensaje.", time: new Date().toLocaleTimeString() },
-        ...prev,
-      ]);
+      setRemoteChatInput("");
     }
   };
 
@@ -352,6 +418,131 @@ function TechDashboard({ user }) {
     }
     setTechPendingFiles((prev) => prev.filter((file) => !file.selected));
     setShowTechFileModal(false);
+  };
+
+  const showNotification = (message, type) => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+  };
+
+  const handleOpenTicket = (ticket) => {
+    setSelectedTicket(ticket);
+    setTicketForm({ status: ticket.status, diagnostic: "" });
+    setShowTicketModal(true);
+  };
+
+  const handleDiagnosticar = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowDiagnosticModal(true);
+  };
+
+  const handleStartDiagnostic = async () => {
+    if (!selectedTicket) return;
+
+    const currentTicket = myTicketsList.find((t) => t.id === selectedTicket.id) || selectedTicket;
+    const canStartDiagnostic = currentTicket.status !== "Cerrado";
+    const diagnosticMessage = canStartDiagnostic
+      ? `Hola ${currentTicket.user}, iniciamos el diagnostico del ticket ${currentTicket.id}. Estado actual: ${currentTicket.status}.`
+      : `Hola ${currentTicket.user}, no podemos iniciar el diagnostico del ticket ${currentTicket.id} porque su estado actual es "${currentTicket.status}".`;
+
+    const localChatMessage = {
+      from: "tech",
+      text: diagnosticMessage,
+      time: new Date().toLocaleTimeString(),
+    };
+    setRemoteMessages((prev) => {
+      const updated = [localChatMessage, ...prev];
+      writeSharedChat(LEONARDO_CHAT_KEY, updated);
+      return updated;
+    });
+
+    if (sessionActive && activeRemoteClient) {
+      try {
+        const savedMessage = await remoteSessionService.sendMessage(remoteSessionId, {
+          senderName: user?.displayName || user?.email || "Tecnico",
+          senderRole: "tech",
+          text: diagnosticMessage,
+        });
+        setRemoteMessages((prev) => [toUiMessage(savedMessage), ...prev.slice(1)]);
+      } catch (_error) {
+        setRemoteMessages((prev) => [
+          { from: "system", text: "No se pudo sincronizar el mensaje de diagnostico con la sesion remota.", time: new Date().toLocaleTimeString() },
+          ...prev,
+        ]);
+      }
+    }
+
+    if (!canStartDiagnostic) {
+      showNotification(`No se puede iniciar: ticket ${currentTicket.id} en estado ${currentTicket.status}`, "error");
+      setShowDiagnosticModal(false);
+      return;
+    }
+
+    showNotification(`Iniciando diagnostico para ${currentTicket.id}...`, "info");
+    setTimeout(() => {
+      showNotification(`Diagnostico completado para ${currentTicket.id}`, "success");
+      setShowDiagnosticModal(false);
+    }, 2000);
+  };
+
+  const handleCerrarTicket = (ticket) => {
+    if (window.confirm(`¿Cerrar ticket ${ticket.id}? Se registrará como resuelto.`)) {
+      setMyTicketsList((prev) => prev.filter((t) => t.id !== ticket.id));
+      showNotification(`✅ Ticket ${ticket.id} cerrado correctamente`, "success");
+    }
+  };
+
+  const handleSaveTicket = () => {
+    if (!selectedTicket) return;
+    setMyTicketsList((prev) => prev.map((t) => (t.id === selectedTicket.id ? { ...t, status: ticketForm.status } : t)));
+    showNotification(`✅ Ticket ${selectedTicket.id} actualizado`, "success");
+    setShowTicketModal(false);
+    setSelectedTicket(null);
+  };
+
+  const handleOpenSession = (session) => {
+    setSelectedSession(session);
+    setShowSessionModal(true);
+  };
+
+  const handleViewHistory = (session) => {
+    setSelectedHistorySession(session);
+    setShowHistoryModal(true);
+  };
+
+  const handleStartSession = (session) => {
+    setRemoteSessionsList((prev) => prev.map((s) => (s.id === session.id ? { ...s, status: "Activa", duration: "0 min" } : s)));
+    showNotification(`▶️ Sesión ${session.id} iniciada`, "success");
+    setShowSessionModal(false);
+  };
+
+  const handleEndSession = (session) => {
+    setRemoteSessionsList((prev) => prev.map((s) => (s.id === session.id ? { ...s, status: "Finalizada" } : s)));
+    showNotification(`⏹️ Sesión ${session.id} finalizada`, "success");
+    setShowSessionModal(false);
+  };
+
+  const handleEscalateSession = (session) => {
+    setSelectedSession(session);
+    setEscalationTarget("tecnico");
+    setShowEscalationModal(true);
+  };
+
+  const handleConfirmEscalation = () => {
+    if (!selectedSession) return;
+    const targetLabel = escalationTarget === "admin" ? "Administrador" : "Tecnico";
+    showNotification(`Sesion ${selectedSession.id} escalada a ${targetLabel}`, "success");
+    setShowEscalationModal(false);
+  };
+
+  const filteredKnowledge = knowledgeBase.filter((article) =>
+    article.title.toLowerCase().includes(searchKnowledge.toLowerCase()) ||
+    article.category.toLowerCase().includes(searchKnowledge.toLowerCase())
+  );
+
+  const handleOpenArticle = (article) => {
+    setSelectedArticle(article);
+    setShowKnowledgeModal(true);
   };
 
   const card = "tech-card rounded-3xl border shadow-[0_18px_45px_-25px_rgba(127,0,255,0.18)] backdrop-blur-xl";
@@ -501,16 +692,15 @@ function TechDashboard({ user }) {
               value={remoteChatInput}
               onChange={(e) => setRemoteChatInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendRemoteMessage()}
-              placeholder={sessionActive ? "Escribe un mensaje tecnico..." : "Inicia una sesion para habilitar el chat"}
+              placeholder="Escribe un mensaje tecnico..."
               className="flex-1 min-w-[260px] border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#7F00FF]/20 focus:border-[#7F00FF]"
               style={{ borderColor: techTheme.border, backgroundColor: techTheme.card, color: techTheme.text }}
-              disabled={!sessionActive}
             />
             <button
               onClick={sendRemoteMessage}
               className="px-3 h-10 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: ACCENT }}
-              disabled={!sessionActive || !remoteChatInput.trim()}
+              disabled={!remoteChatInput.trim()}
             >
               <Send size={16} />
             </button>
@@ -534,7 +724,7 @@ function TechDashboard({ user }) {
             </tr>
           </thead>
           <tbody>
-            {tickets.map((t) => (
+            {myTicketsList.map((t) => (
               <tr key={t.id} className="border-b border-[#D1D1D1]">
                 <td className="py-3 font-semibold text-[#333333]">{t.id}</td>
                 <td>{t.user}</td>
@@ -543,9 +733,9 @@ function TechDashboard({ user }) {
                 <td className="text-[#6B6B6B]">{t.eta}</td>
                 <td>
                   <div className="flex gap-2">
-                    <button className="px-2 py-1 rounded-md border border-[#D1D1D1]">Abrir</button>
-                    <button className="px-2 py-1 rounded-md border border-[#D1D1D1]">Diagnosticar</button>
-                    <button className="px-2 py-1 rounded-md bg-[#7F00FF] text-white">Cerrar</button>
+                    <button onClick={() => handleOpenTicket(t)} className="px-2 py-1 rounded-md border border-[#D1D1D1]">Abrir</button>
+                    <button onClick={() => handleDiagnosticar(t)} className="px-2 py-1 rounded-md border border-[#D1D1D1]">Diagnosticar</button>
+                    <button onClick={() => handleCerrarTicket(t)} className="px-2 py-1 rounded-md bg-[#7F00FF] text-white">Cerrar</button>
                   </div>
                 </td>
               </tr>
@@ -569,10 +759,10 @@ function TechDashboard({ user }) {
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           {[
-            ["Total sesiones", String(remoteSessions.length), "Ultimos 2 dias"],
-            ["Activas", String(remoteSessions.filter((s) => s.status === "Activa").length), "Atencion en curso"],
-            ["Pendientes", String(remoteSessions.filter((s) => s.status === "Pendiente").length), "Sin iniciar"],
-            ["Criticas", String(remoteSessions.filter((s) => s.priority === "Critica").length), "Escalar si supera SLA"],
+            ["Total sesiones", String(remoteSessionsList.length), "Ultimos 2 dias"],
+            ["Activas", String(remoteSessionsList.filter((s) => s.status === "Activa").length), "Atencion en curso"],
+            ["Pendientes", String(remoteSessionsList.filter((s) => s.status === "Pendiente").length), "Sin iniciar"],
+            ["Criticas", String(remoteSessionsList.filter((s) => s.priority === "Critica").length), "Escalar si supera SLA"],
           ].map((kpi) => (
             <article key={kpi[0]} className="rounded-lg border border-[#D1D1D1] bg-[#F7F7F7] p-3">
               <p className="text-xs text-[#6B6B6B]">{kpi[0]}</p>
@@ -600,7 +790,7 @@ function TechDashboard({ user }) {
               </tr>
             </thead>
             <tbody>
-              {remoteSessions.map((s) => (
+              {remoteSessionsList.map((s) => (
                 <tr key={s.id} className="border-b border-[#D1D1D1]">
                   <td className="py-3 font-semibold text-[#333333]">{s.id}</td>
                   <td className="text-[#333333]">{s.category}</td>
@@ -611,8 +801,8 @@ function TechDashboard({ user }) {
                   <td className="text-[#6B6B6B]">{s.duration}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <button className="px-2 py-1 rounded-md border border-[#D1D1D1]">Abrir</button>
-                      <button className="px-2 py-1 rounded-md border border-[#D1D1D1]">Historial</button>
+                      <button onClick={() => handleOpenSession(s)} className="px-2 py-1 rounded-md border border-[#D1D1D1]">Abrir</button>
+                      <button onClick={() => handleViewHistory(s)} className="px-2 py-1 rounded-md border border-[#D1D1D1]">Historial</button>
                     </div>
                   </td>
                 </tr>
@@ -660,19 +850,14 @@ function TechDashboard({ user }) {
         <h2 className="text-[20px] font-semibold text-[#333333]">Base de conocimiento tecnico</h2>
         <div className="flex items-center gap-2 border border-[#D1D1D1] rounded-lg px-3 py-2 bg-[#F7F7F7]">
           <Search size={16} className="text-[#6B6B6B]" />
-          <input className="bg-transparent outline-none text-sm" placeholder="Buscar procedimiento..." />
+          <input value={searchKnowledge} onChange={(e) => setSearchKnowledge(e.target.value)} className="bg-transparent outline-none text-sm" placeholder="Buscar procedimiento..." />
         </div>
       </div>
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-        {[
-          "Guia de diagnostico remoto para red inestable",
-          "Checklist de cierre de ticket critico",
-          "Procedimiento de reinstalacion de agente",
-          "Matriz de escalamiento L1 -> L2",
-        ].map((item) => (
-          <article key={item} className="rounded-lg border border-[#D1D1D1] p-4 bg-[#F7F7F7]">
-            <p className="text-sm font-medium text-[#333333]">{item}</p>
-            <button className="mt-3 text-xs text-[#7F00FF] font-semibold">Abrir documento</button>
+        {filteredKnowledge.map((item) => (
+          <article key={item.id} className="rounded-lg border border-[#D1D1D1] p-4 bg-[#F7F7F7]">
+            <p className="text-sm font-medium text-[#333333]">{item.title}</p>
+            <button onClick={() => handleOpenArticle(item)} className="mt-3 text-xs text-[#7F00FF] font-semibold">Abrir documento</button>
           </article>
         ))}
       </div>
@@ -971,6 +1156,190 @@ function TechDashboard({ user }) {
           </div>
         </main>
       </div>
+
+      {notification.show && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top duration-300">
+          <div className="px-4 py-3 rounded-xl shadow-lg flex items-center gap-3" style={{ backgroundColor: notification.type === "success" ? "#10b981" : notification.type === "error" ? "#ef4444" : "#3b82f6", color: "white" }}>
+            <span>{notification.type === "success" ? "✅" : notification.type === "error" ? "❌" : "ℹ️"}</span>
+            <span className="font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
+
+      {showTicketModal && selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: techTheme.text }}>Ticket {selectedTicket.id}</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Usuario</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedTicket.user}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Dispositivo</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedTicket.device}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Prioridad</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedTicket.priority}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>ETA</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedTicket.eta}</p></div>
+              </div>
+              <select value={ticketForm.status} onChange={(e) => setTicketForm({ ...ticketForm, status: e.target.value })} className="w-full p-3 rounded-lg border" style={{ backgroundColor: techTheme.panel, borderColor: techTheme.border, color: techTheme.text }}>
+                <option value="">Cambiar estado</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="En progreso">En progreso</option>
+                <option value="Cerrado">Cerrado</option>
+              </select>
+              <div className="flex gap-3">
+                <button onClick={handleSaveTicket} className="flex-1 py-3 rounded-xl text-white font-semibold" style={{ backgroundColor: ACCENT }}>Guardar</button>
+                <button onClick={() => setShowTicketModal(false)} className="flex-1 py-3 rounded-xl border" style={{ borderColor: techTheme.border, color: techTheme.text }}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDiagnosticModal && selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: techTheme.text }}>🔍 Diagnóstico - {selectedTicket.id}</h3>
+            <div className="space-y-4">
+              <p style={{ color: techTheme.text }}>Dispositivo: {selectedTicket.device}</p>
+              <p style={{ color: techTheme.text }}>Usuario: {selectedTicket.user}</p>
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: techTheme.panel, borderColor: techTheme.border }}>
+                <p className="text-sm font-semibold mb-2" style={{ color: techTheme.text }}>Chequeos automáticos:</p>
+                <ul className="space-y-1 text-sm" style={{ color: techTheme.text }}>
+                  <li>✅ Conectividad: Estable (24ms)</li>
+                  <li>✅ CPU: 34% (normal)</li>
+                  <li>✅ RAM: 62% (normal)</li>
+                  <li>⚠️ Disco: 89% (requiere atención)</li>
+                  <li>✅ Firewall: Configurado</li>
+                </ul>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={handleStartDiagnostic} className="flex-1 py-3 rounded-xl text-white font-semibold" style={{ backgroundColor: ACCENT }}>Iniciar diagnóstico</button>
+                <button onClick={() => setShowDiagnosticModal(false)} className="flex-1 py-3 rounded-xl border" style={{ borderColor: techTheme.border, color: techTheme.text }}>Cerrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSessionModal && selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: techTheme.text }}>Sesión {selectedSession.id}</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Cliente</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.client}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Categoría</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.category}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Prioridad</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.priority}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Estado</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.status}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Fecha</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.date}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Duración</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.duration}</p></div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedSession.status !== "Activa" && selectedSession.status !== "Finalizada" && (
+                  <button onClick={() => handleStartSession(selectedSession)} className="flex-1 py-2 rounded-lg text-white text-sm" style={{ backgroundColor: "#10b981" }}>▶ Iniciar</button>
+                )}
+                {selectedSession.status === "Activa" && (
+                  <button onClick={() => handleEndSession(selectedSession)} className="flex-1 py-2 rounded-lg text-white text-sm" style={{ backgroundColor: "#ef4444" }}>⏹ Finalizar</button>
+                )}
+                <button onClick={() => handleEscalateSession(selectedSession)} className="flex-1 py-2 rounded-lg text-white text-sm" style={{ backgroundColor: "#f59e0b" }}>📤 Escalar</button>
+                <button onClick={() => setShowSessionModal(false)} className="w-full py-2 rounded-lg border text-sm" style={{ borderColor: techTheme.border, color: techTheme.text }}>Cerrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEscalationModal && selectedSession && (
+        <div className="fixed inset-0 z-[51] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
+            <h3 className="text-xl font-bold mb-2" style={{ color: techTheme.text }}>Escalar sesion {selectedSession.id}</h3>
+            <p className="text-sm mb-4" style={{ color: techTheme.sub }}>
+              Selecciona el destino para transferir esta sesion remota.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+              <button
+                onClick={() => setEscalationTarget("tecnico")}
+                className="px-4 py-3 rounded-xl border text-sm font-medium transition-colors"
+                style={{
+                  borderColor: escalationTarget === "tecnico" ? ACCENT : techTheme.border,
+                  backgroundColor: escalationTarget === "tecnico" ? `${ACCENT}22` : techTheme.panel,
+                  color: techTheme.text,
+                }}
+              >
+                Otro tecnico
+              </button>
+              <button
+                onClick={() => setEscalationTarget("admin")}
+                className="px-4 py-3 rounded-xl border text-sm font-medium transition-colors"
+                style={{
+                  borderColor: escalationTarget === "admin" ? ACCENT : techTheme.border,
+                  backgroundColor: escalationTarget === "admin" ? `${ACCENT}22` : techTheme.panel,
+                  color: techTheme.text,
+                }}
+              >
+                Administrador
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmEscalation}
+                className="flex-1 py-3 rounded-xl text-white font-semibold"
+                style={{ backgroundColor: ACCENT }}
+              >
+                Confirmar escalamiento
+              </button>
+              <button
+                onClick={() => setShowEscalationModal(false)}
+                className="flex-1 py-3 rounded-xl border"
+                style={{ borderColor: techTheme.border, color: techTheme.text }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHistoryModal && selectedHistorySession && (
+        <div className="fixed inset-0 z-[51] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
+            <h3 className="text-xl font-bold mb-4" style={{ color: techTheme.text }}>Historial de sesion {selectedHistorySession.id}</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Cliente</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedHistorySession.client}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Categoría</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedHistorySession.category}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Duración</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedHistorySession.duration}</p></div>
+                <div><p className="text-sm" style={{ color: techTheme.sub }}>Estado</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedHistorySession.status}</p></div>
+                <div className="col-span-2"><p className="text-sm" style={{ color: techTheme.sub }}>Fecha</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedHistorySession.date}</p></div>
+              </div>
+              <div className="p-4 rounded-lg border" style={{ backgroundColor: techTheme.panel, borderColor: techTheme.border }}>
+                <p className="text-sm" style={{ color: techTheme.text }}>
+                  Registro de sesión listo para revisión y transferencia operativa.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="w-full py-3 rounded-xl text-white font-semibold"
+                style={{ backgroundColor: ACCENT }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showKnowledgeModal && selectedArticle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
+            <h3 className="text-xl font-bold mb-2" style={{ color: techTheme.text }}>{selectedArticle.title}</h3>
+            <p className="text-sm mb-4" style={{ color: techTheme.sub }}>Categoría: {selectedArticle.category}</p>
+            <div className="p-4 rounded-lg border" style={{ backgroundColor: techTheme.panel, borderColor: techTheme.border }}>
+              <p style={{ color: techTheme.text, whiteSpace: "pre-wrap" }}>{selectedArticle.content}</p>
+            </div>
+            <div className="mt-6">
+              <button onClick={() => setShowKnowledgeModal(false)} className="w-full py-3 rounded-xl text-white font-semibold" style={{ backgroundColor: ACCENT }}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTechCallModal && (
         <div className="fixed inset-0 z-[58] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">

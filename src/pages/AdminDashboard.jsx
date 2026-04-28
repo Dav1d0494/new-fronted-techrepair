@@ -41,6 +41,36 @@ import logo from "../assets/logo.png";
 import ticketService from "../services/ticketService";
 import { canAccessTechnicalNews, resolveTechnicalNewsUserMeta } from "../utils/technicalNewsAccess";
 
+const CLIENT_LEONARDO_CHAT_KEY = "techrepair_chat_TR-809-541-001";
+const TECH_NAIN_CHAT_KEY = "techrepair_chat_TEC-808-544-541";
+
+const normalizeIdForCompare = (value) => String(value || "").replace(/\D/g, "");
+
+const resolveAdminChatKey = (role, targetId) => {
+  const normalizedId = normalizeIdForCompare(targetId);
+  if (role === "tech") {
+    if (normalizedId === "808544541") return TECH_NAIN_CHAT_KEY;
+    return `techrepair_chat_TEC-${normalizedId || "GENERAL"}`;
+  }
+  if (normalizedId === "809541001") return CLIENT_LEONARDO_CHAT_KEY;
+  return `techrepair_chat_TR-${normalizedId || "GENERAL"}`;
+};
+
+const readSharedChat = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+};
+
+const writeSharedChat = (key, messages) => {
+  localStorage.setItem(key, JSON.stringify(messages));
+};
+
 function AdminDashboard({ user }) {
   const [section, setSection] = useState("dashboard");
   const [settingsTab, setSettingsTab] = useState("interface");
@@ -86,6 +116,9 @@ function AdminDashboard({ user }) {
   const [adminRemoteMessages, setAdminRemoteMessages] = useState([
     { from: "system", text: "Canal administrativo seguro iniciado.", time: new Date().toLocaleTimeString() },
   ]);
+  const [adminChatKey, setAdminChatKey] = useState(CLIENT_LEONARDO_CHAT_KEY);
+  const [chatTargetRole, setChatTargetRole] = useState("client");
+  const [chatTargetId, setChatTargetId] = useState("809541001");
   const [showAdminCallModal, setShowAdminCallModal] = useState(false);
   const [showAdminVideoModal, setShowAdminVideoModal] = useState(false);
   const [showAdminFileModal, setShowAdminFileModal] = useState(false);
@@ -193,6 +226,10 @@ function AdminDashboard({ user }) {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketForm, setTicketForm] = useState({ tech: "", status: "", priority: "" });
   const [technicians] = useState(["Nain Zuniga", "Carlos Rivas", "Luis Ortega", "Sin asignar"]);
+  const chatTargets = [
+    { label: "Leonardo Martinez (Cliente)", role: "client", id: "809541001" },
+    { label: "Nain Zuñiga (Tecnico)", role: "tech", id: "808544541" },
+  ];
   const [reportsList, setReportsList] = useState([
     { name: "SLA Global", period: "Enero 2026", owner: "Cristian Alarcon", status: "Completado", format: "PDF", updated: "Hoy 10:30" },
     { name: "Incidentes por sede", period: "Semana 06", owner: "Nain Zuniga", status: "Completado", format: "CSV", updated: "Hoy 09:12" },
@@ -209,6 +246,22 @@ function AdminDashboard({ user }) {
   const startAdminConnection = () => {
     const normalizedTarget = adminTargetId.trim().toUpperCase();
     if (!normalizedTarget) return;
+    const targetDigits = normalizeIdForCompare(normalizedTarget);
+    const existsInQuickList = chatTargets.some((target) => target.role === targetRole && target.id === targetDigits);
+    if (existsInQuickList) {
+      setChatTargetRole(targetRole);
+      setChatTargetId(targetDigits);
+    }
+    const chatKey = resolveAdminChatKey(targetRole, normalizedTarget);
+    setAdminChatKey(chatKey);
+    const existingChat = readSharedChat(chatKey);
+    if (existingChat.length) {
+      setAdminRemoteMessages(existingChat);
+    } else {
+      const seed = [{ from: "system", text: "Canal administrativo seguro iniciado.", time: new Date().toLocaleTimeString() }];
+      writeSharedChat(chatKey, seed);
+      setAdminRemoteMessages(seed);
+    }
 
     setAdminActiveTarget({ id: normalizedTarget, role: targetRole });
     setAdminInviteStatus("waiting");
@@ -294,8 +347,27 @@ function AdminDashboard({ user }) {
   const sendAdminMessage = () => {
     const text = adminChatInput.trim();
     if (!text) return;
-    setAdminRemoteMessages((prev) => [{ from: "admin", text, time: new Date().toLocaleTimeString() }, ...prev]);
+    setAdminRemoteMessages((prev) => {
+      const updated = [{ from: "admin", text, time: new Date().toLocaleTimeString() }, ...prev];
+      writeSharedChat(adminChatKey, updated);
+      return updated;
+    });
     setAdminChatInput("");
+  };
+
+  const handleSelectChatTarget = (role, id) => {
+    setChatTargetRole(role);
+    setChatTargetId(id);
+    const key = resolveAdminChatKey(role, id);
+    setAdminChatKey(key);
+    const existing = readSharedChat(key);
+    if (existing.length) {
+      setAdminRemoteMessages(existing);
+    } else {
+      const seed = [{ from: "system", text: "Canal administrativo seguro iniciado.", time: new Date().toLocaleTimeString() }];
+      writeSharedChat(key, seed);
+      setAdminRemoteMessages(seed);
+    }
   };
 
   const attachAdminFiles = (event) => {
@@ -328,17 +400,41 @@ function AdminDashboard({ user }) {
     if (!selectedFiles.length) return;
     const normalizedFiles = selectedFiles.map((file) => ({ originalName: file.originalName, size: file.size, type: file.type }));
     setAdminRemoteAttachments((prev) => [...normalizedFiles, ...prev]);
-    setAdminRemoteMessages((prev) => [
-      {
-        from: "admin",
-        text: `Adjuntos enviados: ${normalizedFiles.map((file) => `${file.originalName} (${formatFileSize(file.size)})`).join(", ")}`,
-        time: new Date().toLocaleTimeString(),
-      },
-      ...prev,
-    ]);
+    setAdminRemoteMessages((prev) => {
+      const updated = [
+        {
+          from: "admin",
+          text: `Adjuntos enviados: ${normalizedFiles.map((file) => `${file.originalName} (${formatFileSize(file.size)})`).join(", ")}`,
+          time: new Date().toLocaleTimeString(),
+        },
+        ...prev,
+      ];
+      writeSharedChat(adminChatKey, updated);
+      return updated;
+    });
     setAdminPendingFiles((prev) => prev.filter((file) => !file.selected));
     setShowAdminFileModal(false);
   };
+
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (event.key !== adminChatKey) return;
+      setAdminRemoteMessages(readSharedChat(adminChatKey));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [adminChatKey]);
+
+  useEffect(() => {
+    const existing = readSharedChat(adminChatKey);
+    if (existing.length) {
+      setAdminRemoteMessages(existing);
+      return;
+    }
+    const seed = [{ from: "system", text: "Canal administrativo seguro iniciado.", time: new Date().toLocaleTimeString() }];
+    writeSharedChat(adminChatKey, seed);
+    setAdminRemoteMessages(seed);
+  }, [adminChatKey]);
 
   const showNotification = (message, type) => {
     setNotification({ show: true, message, type });
@@ -736,6 +832,39 @@ function AdminDashboard({ user }) {
                   <Video size={14} /> Videollamada
                 </button>
               </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+              <select
+                value={chatTargetRole}
+                onChange={(e) => {
+                  const role = e.target.value;
+                  const firstTarget = chatTargets.find((target) => target.role === role) || chatTargets[0];
+                  handleSelectChatTarget(firstTarget.role, firstTarget.id);
+                }}
+                className="rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: theme.border, backgroundColor: theme.panel, color: theme.text }}
+              >
+                <option value="client">Cliente</option>
+                <option value="tech">Tecnico</option>
+              </select>
+              <select
+                value={`${chatTargetRole}:${chatTargetId}`}
+                onChange={(e) => {
+                  const [role, id] = e.target.value.split(":");
+                  handleSelectChatTarget(role, id);
+                }}
+                className="rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: theme.border, backgroundColor: theme.panel, color: theme.text }}
+              >
+                {chatTargets
+                  .filter((target) => target.role === chatTargetRole)
+                  .map((target) => (
+                    <option key={`${target.role}:${target.id}`} value={`${target.role}:${target.id}`}>
+                      {target.label}
+                    </option>
+                  ))}
+              </select>
             </div>
 
             <div className="mt-3 p-3 rounded-lg border h-56 overflow-auto space-y-2" style={{ borderColor: theme.border, backgroundColor: theme.panel }}>

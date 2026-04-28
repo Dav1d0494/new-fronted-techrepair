@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Edit2, Newspaper, RefreshCw, Save, ShieldCheck, Trash2, X } from "lucide-react";
 import technicalNewsService from "../../services/technicalNewsService";
 
+const TECH_NEWS_STORAGE_KEY = "techrepair_technical_news";
+
 const formatNewsDate = (value) => {
   if (!value) return "Sin fecha";
   const date = new Date(value);
@@ -77,6 +79,18 @@ export function TechnicalNewsPanel({
     if (!active || bootstrapped) return;
     loadNews();
   }, [active, bootstrapped]);
+
+  useEffect(() => {
+    if (!active) return undefined;
+
+    const onStorageChange = (event) => {
+      if (event.key !== TECH_NEWS_STORAGE_KEY) return;
+      loadNews({ silent: true });
+    };
+
+    window.addEventListener("storage", onStorageChange);
+    return () => window.removeEventListener("storage", onStorageChange);
+  }, [active]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
