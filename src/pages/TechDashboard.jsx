@@ -98,6 +98,12 @@ function TechDashboard({ user }) {
   const [techMaskSensitiveData, setTechMaskSensitiveData] = useState(true);
   const [techRequireFullControlConfirm, setTechRequireFullControlConfirm] = useState(true);
   const [techActionAuditLog, setTechActionAuditLog] = useState(true);
+  const [shiftNoteInput, setShiftNoteInput] = useState("");
+  const [shiftNotes, setShiftNotes] = useState([
+    "08:05 - Inicio de turno. Se valida conectividad de consola y acceso remoto.",
+    "09:20 - Correctivo RS-1402 en curso: ajuste de red y validacion de servicio.",
+    "11:10 - Preventivo RS-1390 completado: actualizaciones aplicadas y checklist OK.",
+  ]);
   const [sessionLogs, setSessionLogs] = useState([
     "17:45 - Verificacion de conectividad remota.",
     "17:47 - Diagnostico inicial de latencia.",
@@ -353,6 +359,49 @@ function TechDashboard({ user }) {
     }
   };
 
+  const maintenanceGuideByCategory = {
+    Correctivo: {
+      objective: "Restablecer el servicio y eliminar la causa raiz de la falla reportada.",
+      actions: [
+        "Validar sintomas, alcance del impacto y tiempo de caida.",
+        "Revisar logs del sistema/aplicacion y eventos criticos.",
+        "Aplicar correccion (configuracion, parche o reemplazo).",
+        "Ejecutar pruebas funcionales y de estabilidad post-fix.",
+      ],
+      deliverables: ["Causa raiz documentada", "Accion correctiva aplicada", "Pruebas de validacion OK"],
+    },
+    Preventivo: {
+      objective: "Reducir riesgo de incidentes mediante ajustes y controles proactivos.",
+      actions: [
+        "Revisar salud general: CPU, RAM, disco y servicios clave.",
+        "Actualizar sistema, agentes y firmas de seguridad.",
+        "Limpiar temporales, optimizar arranque y tareas programadas.",
+        "Verificar backup, antivirus, firewall y politicas base.",
+      ],
+      deliverables: ["Checklist preventivo completo", "Actualizaciones aplicadas", "Riesgos identificados"],
+    },
+    Instalacion: {
+      objective: "Implementar software/componente con configuracion correcta y operativa.",
+      actions: [
+        "Validar prerequisitos de sistema y permisos de instalacion.",
+        "Instalar paquete/cliente y dependencias requeridas.",
+        "Configurar parametros iniciales, licencias y conectividad.",
+        "Realizar pruebas de apertura, autenticacion y operacion.",
+      ],
+      deliverables: ["Instalacion completada", "Configuracion inicial validada", "Evidencia de pruebas"],
+    },
+    Auditoria: {
+      objective: "Evaluar cumplimiento tecnico, seguridad y trazabilidad operativa.",
+      actions: [
+        "Revisar politicas aplicadas, usuarios y privilegios.",
+        "Verificar parches, cifrado, antivirus y controles activos.",
+        "Contrastar configuracion real vs estandar interno.",
+        "Levantar hallazgos, severidad y plan de remediacion.",
+      ],
+      deliverables: ["Informe de hallazgos", "Brechas priorizadas", "Plan de accion recomendado"],
+    },
+  };
+
   const attachRemoteFiles = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -382,40 +431,84 @@ function TechDashboard({ user }) {
   const sendTechPendingFiles = async () => {
     const selectedFiles = techPendingFiles.filter((file) => file.selected && file.file);
     if (!selectedFiles.length) return;
-    if (!sessionActive || !activeRemoteClient) {
-      setRemoteMessages((prev) => [
-        { from: "system", text: "Inicia una sesion remota para enviar archivos.", time: new Date().toLocaleTimeString() },
-        ...prev,
-      ]);
-      return;
-    }
-    try {
-      const uploadedFiles = await Promise.all(
-        selectedFiles.map((entry) =>
-          remoteSessionService.uploadFile(
-            remoteSessionId,
-            entry.file,
-            user?.displayName || user?.email || "Tecnico",
-            "tech"
-          )
-        )
-      );
+    const localAttachments = selectedFiles.map((entry) => ({
+      id: entry.id,
+      originalName: entry.originalName,
+      size: entry.size,
+      type: entry.type,
+      senderName: user?.displayName || user?.email || "Tecnico",
+      senderRole: "tech",
+      createdAt: new Date().toISOString(),
+      localOnly: true,
+    }));
 
-      setRemoteAttachments((prev) => [...uploadedFiles, ...prev]);
+    // Siempre reflejamos adjuntos locales para que el tecnico pueda trabajar aunque no haya sesion activa.
+    setRemoteAttachments((prev) => [...localAttachments, ...prev]);
+    setRemoteMessages((prev) => [
+      {
+        from: "tech",
+        text: `Adjuntos: ${selectedFiles.map((file) => `${file.originalName} (${formatFileSize(file.size)})`).join(", ")}`,
+        time: new Date().toLocaleTimeString(),
+      },
+      ...prev,
+    ]);
+
+    if (sessionActive && activeRemoteClient) {
+      try {
+        const uploadResults = await Promise.allSettled(
+          selectedFiles.map((entry) =>
+            remoteSessionService.uploadFile(
+              remoteSessionId,
+              entry.file,
+              user?.displayName || user?.email || "Tecnico",
+              "tech"
+            )
+          )
+        );
+
+        const uploadedFiles = uploadResults
+          .filter((result) => result.status === "fulfilled")
+          .map((result) => result.value);
+        const failedCount = uploadResults.length - uploadedFiles.length;
+
+        if (uploadedFiles.length) {
+          setRemoteAttachments((prev) => [
+            ...uploadedFiles,
+            ...prev.filter((file) => !selectedFiles.some((entry) => entry.id === file.id)),
+          ]);
+        }
+
+        if (failedCount > 0) {
+          setRemoteMessages((prev) => [
+            {
+              from: "system",
+              text: `No se pudieron sincronizar ${failedCount} archivo(s) con la sesion remota, pero quedaron adjuntos localmente.`,
+              time: new Date().toLocaleTimeString(),
+            },
+            ...prev,
+          ]);
+        }
+      } catch (error) {
+        setRemoteMessages((prev) => [
+          {
+            from: "system",
+            text: "No se pudieron sincronizar los archivos con la sesion remota, pero quedaron adjuntos localmente.",
+            time: new Date().toLocaleTimeString(),
+          },
+          ...prev,
+        ]);
+      }
+    } else {
       setRemoteMessages((prev) => [
         {
-          from: "tech",
-          text: `Adjuntos: ${uploadedFiles.map((file) => `${file.originalName} (${formatFileSize(file.size)})`).join(", ")}`,
+          from: "system",
+          text: "Archivos adjuntos en borrador. Inicia una sesion para sincronizarlos con el cliente.",
           time: new Date().toLocaleTimeString(),
         },
         ...prev,
       ]);
-    } catch (error) {
-      setRemoteMessages((prev) => [
-        { from: "system", text: "No se pudieron subir los archivos.", time: new Date().toLocaleTimeString() },
-        ...prev,
-      ]);
     }
+
     setTechPendingFiles((prev) => prev.filter((file) => !file.selected));
     setShowTechFileModal(false);
   };
@@ -423,6 +516,14 @@ function TechDashboard({ user }) {
   const showNotification = (message, type) => {
     setNotification({ show: true, message, type });
     setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+  };
+
+  const addShiftNote = () => {
+    const text = shiftNoteInput.trim();
+    if (!text) return;
+    setShiftNotes((prev) => [`${new Date().toLocaleTimeString()} - ${text}`, ...prev]);
+    setShiftNoteInput("");
+    showNotification("Nota de turno agregada.", "success");
   };
 
   const handleOpenTicket = (ticket) => {
@@ -886,10 +987,27 @@ function TechDashboard({ user }) {
       </div>
       <div className="mt-4 rounded-lg border border-[#D1D1D1] p-4">
         <p className="text-sm font-medium text-[#333333] mb-2">Notas del turno</p>
+        <div className="mb-3 rounded-lg border border-[#D1D1D1] bg-[#F7F7F7] p-3 max-h-[180px] overflow-auto">
+          <ul className="space-y-1.5">
+            {shiftNotes.map((note, idx) => (
+              <li key={`${note}-${idx}`} className="text-sm text-[#333333]">{note}</li>
+            ))}
+          </ul>
+        </div>
         <textarea
+          value={shiftNoteInput}
+          onChange={(e) => setShiftNoteInput(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") addShiftNote();
+          }}
           className="w-full min-h-[110px] rounded-lg border border-[#D1D1D1] bg-[#F7F7F7] p-3 text-sm outline-none focus:ring-2 focus:ring-[#7F00FF]/20 focus:border-[#7F00FF]"
           placeholder="Documenta acciones, bloqueos y siguientes pasos para el siguiente tecnico."
         />
+        <div className="mt-3 flex justify-end">
+          <button onClick={addShiftNote} className="px-4 py-2 rounded-lg text-sm text-white bg-[#7F00FF] hover:bg-[#5E00CC]">
+            Guardar nota
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -1223,6 +1341,33 @@ function TechDashboard({ user }) {
           <div className="w-full max-w-md rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: techTheme.card, borderColor: techTheme.border }}>
             <h3 className="text-xl font-bold mb-4" style={{ color: techTheme.text }}>Sesión {selectedSession.id}</h3>
             <div className="space-y-3">
+              {(() => {
+                const guide = maintenanceGuideByCategory[selectedSession.category] || maintenanceGuideByCategory.Correctivo;
+                return (
+                  <div className="rounded-lg border p-3" style={{ borderColor: techTheme.border, backgroundColor: techTheme.panel }}>
+                    <p className="text-xs uppercase tracking-wide mb-1" style={{ color: techTheme.sub }}>
+                      Plan de mantenimiento · {selectedSession.category}
+                    </p>
+                    <p className="text-sm font-medium" style={{ color: techTheme.text }}>
+                      Objetivo: {guide.objective}
+                    </p>
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold" style={{ color: techTheme.sub }}>Acciones recomendadas</p>
+                      <ul className="mt-1 space-y-1">
+                        {guide.actions.map((action) => (
+                          <li key={action} className="text-xs" style={{ color: techTheme.text }}>
+                            • {action}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold" style={{ color: techTheme.sub }}>Entregables</p>
+                      <p className="text-xs" style={{ color: techTheme.text }}>{guide.deliverables.join(" · ")}</p>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-2 gap-3">
                 <div><p className="text-sm" style={{ color: techTheme.sub }}>Cliente</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.client}</p></div>
                 <div><p className="text-sm" style={{ color: techTheme.sub }}>Categoría</p><p className="font-semibold" style={{ color: techTheme.text }}>{selectedSession.category}</p></div>

@@ -124,8 +124,8 @@ export default function Login() {
             <div className="text-center">
               <img src={logoTechRepair} alt="TechRepair" className="mx-auto mb-4 object-contain rounded-xl" style={{ width: 64, height: 64 }} />
               <p className={`text-xs font-semibold uppercase tracking-widest ${isDark ? "text-slate-400" : "text-gray-400"}`}>Acceso seguro</p>
-              <h1 className={`mt-2 text-3xl font-semibold ${isDark ? "text-slate-100" : "text-[#333333]"}`}>Iniciar sesion</h1>
-              <p className={`mt-2 text-sm ${isDark ? "text-slate-400" : "text-gray-500"}`}>Ingresa tus credenciales para continuar en TechRepair.</p>
+              <h1 className={`mt-2 text-3xl font-semibold ${isDark ? "text-slate-100" : "text-[#333333]"}`}>TechRepair</h1>
+              <p className={`mt-2 text-sm ${isDark ? "text-slate-400" : "text-gray-500"}`}>(The Solutions at Your Fingerstips)</p>
             </div>
 
             {error && (

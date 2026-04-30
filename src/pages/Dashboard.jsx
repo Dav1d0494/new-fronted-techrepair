@@ -13,6 +13,10 @@ import {
   ShieldCheck,
   Timer,
   UploadCloud,
+  FileText,
+  Image as ImageIcon,
+  Package,
+  File,
   UserCheck,
   Users,
   Video,
@@ -67,6 +71,13 @@ function Dashboard({ user }) {
   const [clientVideoCamOn, setClientVideoCamOn] = useState(true);
   const [clientVideoShareOn, setClientVideoShareOn] = useState(false);
   const [clientPendingFiles, setClientPendingFiles] = useState([]);
+  const [sharedFiles, setSharedFiles] = useState([
+    { id: "seed-1", name: "captura_error_red_2026-04-29.png", size: 1482450, type: "image/png", source: "Cliente" },
+    { id: "seed-2", name: "notas_incidente.txt", size: 7340, type: "text/plain", source: "Cliente" },
+    { id: "seed-3", name: "OfficeSetup.exe", size: 432015360, type: "application/x-msdownload", source: "Cliente" },
+    { id: "seed-4", name: "FortiClientVPNSetup.exe", size: 92751872, type: "application/x-msdownload", source: "Cliente" },
+    { id: "seed-5", name: "Cisco_Secure_Client_Installer.exe", size: 128503808, type: "application/x-msdownload", source: "Cliente" },
+  ]);
   const [remoteCode, setRemoteCode] = useState("");
   const [clientTheme, setClientTheme] = useState(() => localStorage.getItem("app_theme_mode") || localStorage.getItem("client_theme_mode") || "auto");
   const [selectedDetail, setSelectedDetail] = useState(null);
@@ -77,6 +88,7 @@ function Dashboard({ user }) {
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [micEnabled, setMicEnabled] = useState(true);
   const clientFileInputRef = useRef(null);
+  const sharedFilesInputRef = useRef(null);
   const baseClientId = "809541";
   const clientExtraDigits = "001";
   const expandedClientId = `${baseClientId}${clientExtraDigits}`;
@@ -208,6 +220,35 @@ function Dashboard({ user }) {
     ]);
     setClientPendingFiles((prev) => prev.filter((file) => !file.selected));
     setShowClientFileModal(false);
+  };
+
+  const onPickSharedFiles = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    const uploaded = files.map((file) => ({
+      id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+      source: "Cliente",
+    }));
+    setSharedFiles((prev) => [...uploaded, ...prev]);
+    event.target.value = "";
+  };
+
+  const getSharedFileIcon = (file) => {
+    const lower = (file.name || "").toLowerCase();
+    const type = (file.type || "").toLowerCase();
+    if (type.startsWith("image/") || [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"].some((ext) => lower.endsWith(ext))) {
+      return <ImageIcon size={16} />;
+    }
+    if (type === "text/plain" || lower.endsWith(".txt")) {
+      return <FileText size={16} />;
+    }
+    if (lower.endsWith(".exe")) {
+      return <Package size={16} />;
+    }
+    return <File size={16} />;
   };
 
   const copyCode = async () => {
@@ -533,8 +574,40 @@ function Dashboard({ user }) {
       <div className={cx("mt-5 rounded-2xl border-2 border-dashed p-8 text-center", ui.input)}>
         <UploadCloud className={cx("mx-auto", ui.textSub)} size={34} />
         <p className={cx("mt-3 font-medium", ui.textMain)}>Arrastra o selecciona archivos</p>
-        <p className={cx("text-xs mt-1", ui.textSub)}>Documentos · Imagenes · Audios</p>
-        <button className="mt-4 px-4 py-2 rounded-lg bg-[#7F00FF] text-white hover:bg-[#5E00CC]">Seleccionar archivo</button>
+        <p className={cx("text-xs mt-1", ui.textSub)}>Documentos · Imagenes · Instaladores</p>
+        <button
+          onClick={() => sharedFilesInputRef.current?.click()}
+          className="mt-4 px-4 py-2 rounded-lg bg-[#7F00FF] text-white hover:bg-[#5E00CC]"
+        >
+          Seleccionar archivo
+        </button>
+        <input
+          ref={sharedFilesInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          accept=".txt,.png,.jpg,.jpeg,.webp,.gif,.bmp,.exe,.zip,.pdf"
+          onChange={onPickSharedFiles}
+        />
+      </div>
+      <div className={cx("mt-5 rounded-2xl border p-4", ui.card)}>
+        <p className={cx("text-sm font-semibold", ui.textMain)}>Archivos enviados al tecnico</p>
+        <div className="mt-3 space-y-2">
+          {sharedFiles.map((file) => (
+            <div key={file.id} className={cx("rounded-xl border px-3 py-2 flex items-center justify-between gap-3", ui.input)}>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={cx("shrink-0", ui.textSub)}>{getSharedFileIcon(file)}</span>
+                <div className="min-w-0">
+                  <p className={cx("text-sm truncate", ui.textMain)}>{file.name}</p>
+                  <p className={cx("text-xs", ui.textSub)}>{file.source} · {formatFileSize(file.size)}</p>
+                </div>
+              </div>
+              <span className="text-[11px] px-2 py-1 rounded-full bg-[#7F00FF]/15 text-[#DCCBFF] border border-[#7F00FF]/30">
+                Compartido
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

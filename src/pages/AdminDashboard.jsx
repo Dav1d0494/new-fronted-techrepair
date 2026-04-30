@@ -210,8 +210,15 @@ function AdminDashboard({ user }) {
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [showTechModal, setShowTechModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [showReportDetailModal, setShowReportDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedTech, setSelectedTech] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [resetTargetUser, setResetTargetUser] = useState(null);
+  const [resetMode, setResetMode] = useState("email");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [modalForm, setModalForm] = useState({ name: "", email: "", role: "", username: "" });
   const [notification, setNotification] = useState({ show: false, message: "", type: "success" });
   const [ticketsList, setTicketsList] = useState([
@@ -481,9 +488,30 @@ function AdminDashboard({ user }) {
   };
 
   const handleResetPassword = (userItem) => {
-    if (window.confirm(`¿Resetear contraseña para ${userItem.name}? Se enviará un correo con la nueva contraseña.`)) {
-      showNotification(`✅ Contraseña reseteada para ${userItem.name}`, "success");
+    setResetTargetUser(userItem);
+    setResetMode("email");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setShowResetPasswordModal(true);
+  };
+
+  const confirmResetPasswordAction = () => {
+    if (!resetTargetUser) return;
+    if (resetMode === "email") {
+      showNotification(`✅ Reset enviado por correo a ${resetTargetUser.email}`, "success");
+      setShowResetPasswordModal(false);
+      return;
     }
+    if (newPassword.length < 8) {
+      showNotification("❌ La nueva contraseña debe tener al menos 8 caracteres", "error");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      showNotification("❌ Las contraseñas no coinciden", "error");
+      return;
+    }
+    showNotification(`✅ Contraseña actualizada para ${resetTargetUser.name}`, "success");
+    setShowResetPasswordModal(false);
   };
 
   const handleToggleUserStatus = (userItem) => {
@@ -704,7 +732,8 @@ function AdminDashboard({ user }) {
   };
 
   const handleViewReport = (report) => {
-    alert(`📊 Reporte: ${report.name}\nPeriodo: ${report.period}\nPropietario: ${report.owner}\nEstado: ${report.status}\nFormato: ${report.format}`);
+    setSelectedReport(report);
+    setShowReportDetailModal(true);
   };
 
   const handleDownloadReport = (report) => {
@@ -2148,6 +2177,150 @@ function AdminDashboard({ user }) {
                 <button onClick={handleSaveTech} className="flex-1 py-3 rounded-xl text-white font-semibold" style={{ backgroundColor: ACCENT }}>Guardar</button>
                 <button onClick={() => setShowTechModal(false)} className="flex-1 py-3 rounded-xl border" style={{ borderColor: theme.border, color: theme.text }}>Cancelar</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResetPasswordModal && resetTargetUser && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
+            <h3 className="text-xl font-bold" style={{ color: theme.text }}>Gestion de contraseña</h3>
+            <p className="text-sm mt-1" style={{ color: theme.sub }}>
+              Usuario: <span style={{ color: theme.text, fontWeight: 600 }}>{resetTargetUser.name}</span> · {resetTargetUser.email}
+            </p>
+            <p className="text-sm mt-3" style={{ color: theme.sub }}>
+              Selecciona el tipo de acción que deseas ejecutar para esta cuenta.
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setResetMode("email")}
+                className="px-3 py-2 rounded-lg border text-sm text-left"
+                style={{
+                  borderColor: resetMode === "email" ? ACCENT : theme.border,
+                  backgroundColor: resetMode === "email" ? `${ACCENT}22` : theme.panel,
+                  color: theme.text,
+                }}
+              >
+                Reset por correo
+              </button>
+              <button
+                type="button"
+                onClick={() => setResetMode("now")}
+                className="px-3 py-2 rounded-lg border text-sm text-left"
+                style={{
+                  borderColor: resetMode === "now" ? ACCENT : theme.border,
+                  backgroundColor: resetMode === "now" ? `${ACCENT}22` : theme.panel,
+                  color: theme.text,
+                }}
+              >
+                Cambiar ahora
+              </button>
+            </div>
+
+            {resetMode === "email" && (
+              <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.border, backgroundColor: theme.panel }}>
+                <p className="text-sm" style={{ color: theme.text }}>
+                  Se enviará un correo de restablecimiento a <strong>{resetTargetUser.email}</strong> con instrucciones seguras para crear una nueva contraseña.
+                </p>
+              </div>
+            )}
+
+            {resetMode === "now" && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold" style={{ color: theme.sub }}>Nueva contraseña</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Minimo 8 caracteres"
+                    className="w-full mt-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#7F00FF]/20 focus:border-[#7F00FF]"
+                    style={{ borderColor: theme.border, backgroundColor: theme.panel, color: theme.text }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold" style={{ color: theme.sub }}>Confirmar contraseña</label>
+                  <input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Repite la contraseña"
+                    className="w-full mt-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#7F00FF]/20 focus:border-[#7F00FF]"
+                    style={{ borderColor: theme.border, backgroundColor: theme.panel, color: theme.text }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={confirmResetPasswordAction}
+                className="flex-1 py-2.5 rounded-lg text-white font-semibold"
+                style={{ backgroundColor: ACCENT }}
+              >
+                Confirmar accion
+              </button>
+              <button
+                onClick={() => setShowResetPasswordModal(false)}
+                className="flex-1 py-2.5 rounded-lg border font-semibold"
+                style={{ borderColor: theme.border, color: theme.text }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReportDetailModal && selectedReport && (
+        <div className="fixed inset-0 z-[94] flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border shadow-2xl p-6" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
+            <h3 className="text-xl font-bold" style={{ color: theme.text }}>Detalle de reporte</h3>
+            <p className="text-sm mt-1" style={{ color: theme.sub }}>
+              Revisa estado, periodo, formato y acciones disponibles.
+            </p>
+
+            <div className="mt-4 rounded-xl border p-4 space-y-2" style={{ borderColor: theme.border, backgroundColor: theme.panel }}>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <p style={{ color: theme.sub }}>Reporte</p>
+                <p className="font-semibold" style={{ color: theme.text }}>{selectedReport.name}</p>
+                <p style={{ color: theme.sub }}>Periodo</p>
+                <p className="font-semibold" style={{ color: theme.text }}>{selectedReport.period}</p>
+                <p style={{ color: theme.sub }}>Propietario</p>
+                <p className="font-semibold" style={{ color: theme.text }}>{selectedReport.owner}</p>
+                <p style={{ color: theme.sub }}>Estado</p>
+                <p className="font-semibold" style={{ color: theme.text }}>{selectedReport.status}</p>
+                <p style={{ color: theme.sub }}>Formato</p>
+                <p className="font-semibold" style={{ color: theme.text }}>{selectedReport.format}</p>
+                <p style={{ color: theme.sub }}>Ultima generacion</p>
+                <p className="font-semibold" style={{ color: theme.text }}>{selectedReport.updated}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border p-3" style={{ borderColor: theme.border, backgroundColor: theme.panel }}>
+              <p className="text-sm" style={{ color: theme.text }}>
+                Este reporte puede usarse para seguimiento de SLA, auditoria operativa y trazabilidad de incidencias por periodo.
+              </p>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => handleDownloadReport(selectedReport)}
+                className="flex-1 py-2.5 rounded-lg text-white font-semibold"
+                style={{ backgroundColor: ACCENT }}
+              >
+                Descargar reporte
+              </button>
+              <button
+                onClick={() => setShowReportDetailModal(false)}
+                className="flex-1 py-2.5 rounded-lg border font-semibold"
+                style={{ borderColor: theme.border, color: theme.text }}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
