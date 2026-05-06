@@ -65,7 +65,9 @@ export function TechnicalNewsPanel({
   const loadNews = async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     try {
-      const data = await technicalNewsService.list();
+      const response = await technicalNewsService.list();
+      console.log("JSON recibido del Backend:", response);
+      const data = response;
       setNews(data);
       setBootstrapped(true);
     } catch {
